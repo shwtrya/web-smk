@@ -376,7 +376,11 @@ function setupGallery() {
   const locationEl = document.getElementById('lightboxLocation');
   const indexEl = document.getElementById('lightboxIndex');
   const slideshowBtn = document.getElementById('slideshowBtn');
+  const lightboxSlideshowBtn = document.getElementById('lightboxSlideshowBtn');
   const cinematicToggle = document.getElementById('lightboxCinematicToggle');
+  const progressEl = document.getElementById('lightboxProgressBar');
+  const progressWrap = document.querySelector('.lightbox-progress');
+  const counterEl = document.getElementById('lightboxCounter');
 
   let activeBuffer = 0;
 
@@ -387,9 +391,34 @@ function setupGallery() {
     clearInterval(slideshow);
     slideshow = null;
     if (slideshowBtn) slideshowBtn.textContent = 'Start Slideshow';
+    if (lightboxSlideshowBtn) {
+      lightboxSlideshowBtn.textContent = '▶ Play Slideshow';
+      lightboxSlideshowBtn.setAttribute('aria-pressed', 'false');
+    }
+    if (progressEl) progressEl.style.width = '0%';
+    if (progressWrap) progressWrap.setAttribute('aria-valuenow', '0');
   };
 
   const formatIndex = (current, total) => `${String(current).padStart(2, '0')}/${String(total).padStart(2, '0')}`;
+
+  const slideshowInterval = 2500;
+
+  const renderProgress = (value = 0) => {
+    const normalized = Math.max(0, Math.min(100, value));
+    if (progressEl) progressEl.style.width = `${normalized}%`;
+    if (progressWrap) progressWrap.setAttribute('aria-valuenow', `${Math.round(normalized)}`);
+  };
+
+  const animateProgress = () => {
+    if (!slideshow) return;
+    renderProgress(0);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!slideshow) return;
+        renderProgress(100);
+      });
+    });
+  };
 
   const renderMeta = () => {
     const item = activeGallery[lightboxIndex];
@@ -398,7 +427,9 @@ function setupGallery() {
     if (caption) caption.textContent = item.caption;
     if (dateEl) dateEl.textContent = date;
     if (locationEl) locationEl.textContent = location;
-    if (indexEl) indexEl.textContent = formatIndex(lightboxIndex + 1, activeGallery.length);
+    const counter = formatIndex(lightboxIndex + 1, activeGallery.length);
+    if (indexEl) indexEl.textContent = counter;
+    if (counterEl) counterEl.textContent = counter;
   };
 
   const syncImage = (immediate = false) => {
@@ -409,8 +440,22 @@ function setupGallery() {
     const outgoing = activeBuffer === 0 ? imageA : imageB;
 
     const activateIncoming = () => {
-      incoming.classList.add('is-active');
-      outgoing.classList.remove('is-active');
+      outgoing.classList.remove('is-active', 'is-entering');
+      outgoing.classList.add('is-exiting');
+
+      incoming.classList.remove('is-exiting');
+      incoming.classList.add('is-active', 'is-entering');
+
+      if (immediate || !outgoing.src) {
+        outgoing.classList.remove('is-exiting');
+        incoming.classList.remove('is-entering');
+      } else {
+        setTimeout(() => {
+          outgoing.classList.remove('is-exiting');
+          incoming.classList.remove('is-entering');
+        }, 620);
+      }
+
       activeBuffer = activeBuffer === 0 ? 1 : 0;
     };
 
@@ -448,12 +493,14 @@ function setupGallery() {
     lightbox?.classList.add('hidden');
     lightbox?.setAttribute('aria-hidden', 'true');
     stopSlideshow();
+    renderProgress(0);
   };
 
   const nextPhoto = () => {
     if (!activeGallery.length) return;
     lightboxIndex = (lightboxIndex + 1) % activeGallery.length;
     sync();
+    if (slideshow) animateProgress();
   };
 
   const prevPhoto = () => {
@@ -472,6 +519,8 @@ function setupGallery() {
       activeGallery = filter === 'all' ? [...galleryItems] : galleryItems.filter((g) => g.category === filter);
       renderGallery(activeGallery);
       lightboxIndex = 0;
+      stopSlideshow();
+      renderProgress(0);
       if (isLightboxOpen()) sync(true);
     });
   }
@@ -493,16 +542,34 @@ function setupGallery() {
     cinematicToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
   });
 
+  const startSlideshow = () => {
+    if (!activeGallery.length || slideshow) return;
+    openLightbox(lightboxIndex, false);
+    if (slideshowBtn) slideshowBtn.textContent = 'Stop Slideshow';
+    if (lightboxSlideshowBtn) {
+      lightboxSlideshowBtn.textContent = '❚❚ Pause Slideshow';
+      lightboxSlideshowBtn.setAttribute('aria-pressed', 'true');
+    }
+    slideshow = setInterval(nextPhoto, slideshowInterval);
+    animateProgress();
+  };
+
   slideshowBtn?.addEventListener('click', () => {
     if (slideshow) {
       stopSlideshow();
       return;
     }
 
-    if (!activeGallery.length) return;
-    openLightbox(lightboxIndex, false);
-    slideshowBtn.textContent = 'Stop Slideshow';
-    slideshow = setInterval(nextPhoto, 2500);
+    startSlideshow();
+  });
+
+  lightboxSlideshowBtn?.addEventListener('click', () => {
+    if (slideshow) {
+      stopSlideshow();
+      return;
+    }
+
+    startSlideshow();
   });
 
   document.addEventListener('keydown', (e) => {
@@ -525,10 +592,7 @@ function setupGallery() {
       if (slideshow) {
         stopSlideshow();
       } else {
-        if (!activeGallery.length) return;
-        openLightbox(lightboxIndex, false);
-        if (slideshowBtn) slideshowBtn.textContent = 'Stop Slideshow';
-        slideshow = setInterval(nextPhoto, 2500);
+        startSlideshow();
       }
     }
   });

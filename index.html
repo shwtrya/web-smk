@@ -281,6 +281,7 @@
 
       <button id="closeLightbox" class="lightbox-close" aria-label="Close lightbox">✕</button>
       <button id="lightboxCinematicToggle" class="lightbox-cinematic-toggle" aria-pressed="false">Cinematic: Off</button>
+      <button id="lightboxSlideshowBtn" class="lightbox-slideshow-btn" aria-pressed="false">▶ Play Slideshow</button>
       <button id="prevPhoto" class="lightbox-nav" aria-label="Previous photo">‹</button>
 
       <figure class="lightbox-figure">
@@ -288,15 +289,23 @@
           <img id="lightboxImageA" class="lightbox-image is-active" alt="Gallery image" />
           <img id="lightboxImageB" class="lightbox-image" alt="Gallery image" />
         </div>
-        <figcaption class="lightbox-meta">
-          <div class="lightbox-meta-main">
-            <p id="lightboxCaption" class="lightbox-caption"></p>
-            <div class="lightbox-meta-details">
-              <span id="lightboxDate"></span>
-              <span id="lightboxLocation"></span>
+        <figcaption class="lightbox-meta" aria-live="polite">
+          <div class="lightbox-meta-panel">
+            <div class="lightbox-meta-main">
+              <p id="lightboxCaption" class="lightbox-caption"></p>
+              <div class="lightbox-meta-details">
+                <span id="lightboxDate"></span>
+                <span id="lightboxLocation"></span>
+              </div>
+            </div>
+            <p id="lightboxIndex" class="lightbox-index">00/00</p>
+          </div>
+          <div class="lightbox-meta-controls">
+            <p id="lightboxCounter" class="lightbox-counter">00/00</p>
+            <div class="lightbox-progress" role="progressbar" aria-label="Slideshow progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <span id="lightboxProgressBar"></span>
             </div>
           </div>
-          <p id="lightboxIndex" class="lightbox-index">00/00</p>
         </figcaption>
       </figure>
 
