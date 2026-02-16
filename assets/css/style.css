@@ -735,9 +735,14 @@ body.cinematic-on #hero .letterbox { display: block; }
   height: min(12vh, 88px);
   background: rgba(0, 0, 0, 0.92);
   pointer-events: none;
-  transform: translateY(-110%);
-  transition: transform 0.35s ease;
+  display: none;
+  opacity: 0;
+  transition: transform 0.35s ease, opacity 0.35s ease;
   z-index: 2;
+}
+.lightbox-letterbox-top {
+  top: 0;
+  transform: translateY(-110%);
 }
 .lightbox-letterbox-bottom {
   bottom: 0;
@@ -745,7 +750,9 @@ body.cinematic-on #hero .letterbox { display: block; }
 }
 .lightbox.cinematic-mode .lightbox-letterbox-top,
 .lightbox.cinematic-mode .lightbox-letterbox-bottom {
+  display: block;
   transform: translateY(0);
+  opacity: 1;
 }
 
 @media (max-width: 900px) {
