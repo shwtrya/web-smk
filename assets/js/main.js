@@ -656,12 +656,14 @@ function setupToggles() {
   const themeToggle = document.getElementById('themeToggle');
   const grainToggle = document.getElementById('grainToggle');
   const leakToggle = document.getElementById('leakToggle');
+  const cinematicToggle = document.getElementById('cinematicToggle');
 
   const prefsKey = 'smk-ui-preferences';
   const defaultPrefs = {
     theme: 'dark',
     grainEnabled: true,
     leakEnabled: true,
+    cinematicEnabled: false,
     volume: 0.5,
     muted: false,
     playIntent: false
@@ -696,9 +698,15 @@ function setupToggles() {
     if (leakToggle) leakToggle.checked = enabled;
   };
 
+  const applyCinematic = (enabled) => {
+    document.body.classList.toggle('cinematic-on', enabled);
+    if (cinematicToggle) cinematicToggle.checked = enabled;
+  };
+
   applyTheme(prefs.theme !== 'light');
   applyGrain(Boolean(prefs.grainEnabled));
   applyLeak(Boolean(prefs.leakEnabled));
+  applyCinematic(Boolean(prefs.cinematicEnabled));
 
   settingsToggle?.addEventListener('click', () => settingsPanel?.classList.toggle('hidden'));
 
@@ -718,6 +726,12 @@ function setupToggles() {
     const enabled = e.target.checked;
     applyLeak(enabled);
     savePrefs({ leakEnabled: enabled });
+  });
+
+  cinematicToggle?.addEventListener('change', (e) => {
+    const enabled = e.target.checked;
+    applyCinematic(enabled);
+    savePrefs({ cinematicEnabled: enabled });
   });
 
   const audio = document.getElementById('bgMusic');
