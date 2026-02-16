@@ -104,7 +104,7 @@ function setupHeroVideo() {
 }
 
 function setupScrollEffects() {
-  gsap.utils.toArray('.reveal').forEach((el) => {
+  gsap.utils.toArray('.reveal:not(.scene-card)').forEach((el) => {
     gsap.fromTo(
       el,
       { y: 40, opacity: 0, filter: 'blur(8px)' },
@@ -118,6 +118,62 @@ function setupScrollEffects() {
       }
     );
   });
+
+  const sceneCards = gsap.utils.toArray('.scene-card');
+  if (sceneCards.length) {
+    sceneCards.forEach((card, index) => {
+      if (index === sceneCards.length - 1 || card.nextElementSibling?.classList.contains('scene-fade')) return;
+      const fade = document.createElement('div');
+      fade.className = 'scene-fade';
+      card.insertAdjacentElement('afterend', fade);
+    });
+
+    sceneCards.forEach((card) => {
+      const image = card.querySelector('img');
+      const textNodes = [
+        card.querySelector('.scene-tag'),
+        card.querySelector('.scene-title'),
+        card.querySelector('.scene-copy')
+      ].filter(Boolean);
+
+      gsap.set(card, { opacity: 0, filter: 'blur(10px)' });
+      if (image) gsap.set(image, { scale: 1.08, transformOrigin: 'center center' });
+      if (textNodes.length) gsap.set(textNodes, { opacity: 0, y: 20, filter: 'blur(6px)' });
+
+      const sceneTimeline = gsap.timeline({
+        defaults: { ease: 'sine.inOut' },
+        scrollTrigger: {
+          trigger: card,
+          start: 'top 82%',
+          end: 'bottom 32%',
+          scrub: 0.7,
+          toggleClass: { targets: card, className: 'is-active' }
+        }
+      });
+
+      sceneTimeline.to(card, { opacity: 1, filter: 'blur(0px)', duration: 0.36 }, 0);
+      if (image) sceneTimeline.to(image, { scale: 1, duration: 0.8 }, 0);
+      if (textNodes.length) sceneTimeline.to(textNodes, { opacity: 1, y: 0, filter: 'blur(0px)', stagger: 0.14, duration: 0.5 }, 0.12);
+    });
+
+    gsap.utils.toArray('.scene-fade').forEach((fade) => {
+      gsap.fromTo(
+        fade,
+        { opacity: 0.05, scaleX: 0.92 },
+        {
+          opacity: 0.5,
+          scaleX: 1,
+          ease: 'sine.inOut',
+          scrollTrigger: {
+            trigger: fade,
+            start: 'top 94%',
+            end: 'bottom 56%',
+            scrub: 0.6
+          }
+        }
+      );
+    });
+  }
 
   const heroBg = document.querySelector('.parallax-layer');
   if (heroBg) {
