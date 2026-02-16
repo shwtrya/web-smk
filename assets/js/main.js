@@ -622,32 +622,15 @@ function setupToggles() {
   const grainToggle = document.getElementById('grainToggle');
   const leakToggle = document.getElementById('leakToggle');
 
-  settingsToggle?.addEventListener('click', () => settingsPanel?.classList.toggle('hidden'));
-
-  themeToggle?.addEventListener('change', (e) => {
-    document.documentElement.dataset.theme = e.target.checked ? 'dark' : 'light';
-  });
-
-  grainToggle?.addEventListener('change', (e) => {
-    document.querySelector('.app-grain').style.display = e.target.checked ? 'block' : 'none';
-  });
-
-  leakToggle?.addEventListener('change', (e) => {
-    document.querySelector('.app-leak').style.display = e.target.checked ? 'block' : 'none';
-  });
-
-  const audio = document.getElementById('bgMusic');
-  const musicPlayer = document.querySelector('.music-player');
-  const musicToggle = document.getElementById('musicToggle');
-  const volumeControl = document.getElementById('volumeControl');
-  const audioProgress = document.getElementById('audioProgress');
-  const currentTime = document.getElementById('currentTime');
-  const durationTime = document.getElementById('durationTime');
-  const soundtrackHint = document.getElementById('soundtrackHint');
-  const prefsKey = 'smk-audio-preferences';
-  const defaultPrefs = { volume: 0.5, muted: false, playIntent: false };
-
-  if (!audio) return;
+  const prefsKey = 'smk-ui-preferences';
+  const defaultPrefs = {
+    theme: 'dark',
+    grainEnabled: true,
+    leakEnabled: true,
+    volume: 0.5,
+    muted: false,
+    playIntent: false
+  };
 
   let prefs = defaultPrefs;
   try {
@@ -656,14 +639,73 @@ function setupToggles() {
     prefs = defaultPrefs;
   }
 
-  audio.volume = Number.isFinite(prefs.volume) ? prefs.volume : defaultPrefs.volume;
-  audio.muted = Boolean(prefs.muted);
-  if (volumeControl) volumeControl.value = String(audio.volume);
-
   const savePrefs = (nextPrefs = {}) => {
     prefs = { ...prefs, ...nextPrefs };
     localStorage.setItem(prefsKey, JSON.stringify(prefs));
   };
+
+  const applyTheme = (isDark) => {
+    document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+    if (themeToggle) themeToggle.checked = isDark;
+  };
+
+  const applyGrain = (enabled) => {
+    const grain = document.querySelector('.app-grain');
+    if (grain) grain.style.display = enabled ? 'block' : 'none';
+    if (grainToggle) grainToggle.checked = enabled;
+  };
+
+  const applyLeak = (enabled) => {
+    const leak = document.querySelector('.app-leak');
+    if (leak) leak.style.display = enabled ? 'block' : 'none';
+    if (leakToggle) leakToggle.checked = enabled;
+  };
+
+  applyTheme(prefs.theme !== 'light');
+  applyGrain(Boolean(prefs.grainEnabled));
+  applyLeak(Boolean(prefs.leakEnabled));
+
+  settingsToggle?.addEventListener('click', () => settingsPanel?.classList.toggle('hidden'));
+
+  themeToggle?.addEventListener('change', (e) => {
+    const isDark = e.target.checked;
+    applyTheme(isDark);
+    savePrefs({ theme: isDark ? 'dark' : 'light' });
+  });
+
+  grainToggle?.addEventListener('change', (e) => {
+    const enabled = e.target.checked;
+    applyGrain(enabled);
+    savePrefs({ grainEnabled: enabled });
+  });
+
+  leakToggle?.addEventListener('change', (e) => {
+    const enabled = e.target.checked;
+    applyLeak(enabled);
+    savePrefs({ leakEnabled: enabled });
+  });
+
+  const audio = document.getElementById('bgMusic');
+  const musicPlayer = document.querySelector('.music-player');
+  const musicToggle = document.getElementById('musicToggle');
+  const volumeControl = document.getElementById('volumeControl');
+  const audioProgress = document.getElementById('audioProgress');
+  const audioTimeLabel = document.getElementById('audioTimeLabel');
+  const trackLabel = document.getElementById('trackLabel');
+  const soundtrackHint = document.getElementById('soundtrackHint');
+
+  if (!audio) return;
+
+  const persistedVolume = Number(prefs.volume);
+  const safeVolume = Number.isFinite(persistedVolume) ? Math.min(1, Math.max(0, persistedVolume)) : defaultPrefs.volume;
+
+  audio.volume = safeVolume;
+  audio.muted = Boolean(prefs.muted);
+
+  if (volumeControl) volumeControl.value = String(safeVolume);
+  if (trackLabel) {
+    trackLabel.textContent = audio.dataset.trackTitle || 'Nostalgia Theme';
+  }
 
   const formatTime = (seconds) => {
     if (!Number.isFinite(seconds)) return '0:00';
@@ -673,6 +715,7 @@ function setupToggles() {
   };
 
   const updatePlayingState = () => {
+    if (!musicToggle) return;
     const isPlaying = !audio.paused;
     musicToggle.textContent = isPlaying ? 'Pause' : 'Play';
     musicPlayer?.classList.toggle('is-playing', isPlaying);
@@ -680,8 +723,11 @@ function setupToggles() {
   };
 
   const syncProgressUI = () => {
-    if (currentTime) currentTime.textContent = formatTime(audio.currentTime);
-    if (durationTime) durationTime.textContent = formatTime(audio.duration || 0);
+    const current = formatTime(audio.currentTime);
+    const duration = formatTime(audio.duration || 0);
+
+    if (audioTimeLabel) audioTimeLabel.textContent = `${current} / ${duration}`;
+
     if (audioProgress && Number.isFinite(audio.duration) && audio.duration > 0) {
       audioProgress.value = String((audio.currentTime / audio.duration) * 100);
     }
@@ -689,20 +735,27 @@ function setupToggles() {
 
   const fadeInAudio = async () => {
     if (!audio.paused) return;
-    const targetVolume = audio.volume;
+
+    const targetVolume = Math.min(1, Math.max(0, Number(volumeControl?.value ?? audio.volume)));
     audio.volume = 0;
+
     await audio.play();
-    const fadeDuration = 1800;
+
+    const fadeDuration = 1200;
     const startedAt = performance.now();
 
     const animate = (timestamp) => {
       const progress = Math.min(1, (timestamp - startedAt) / fadeDuration);
       audio.volume = targetVolume * progress;
+
       if (progress < 1 && !audio.paused) {
         requestAnimationFrame(animate);
         return;
       }
-      if (!audio.paused) audio.volume = targetVolume;
+
+      if (!audio.paused) {
+        audio.volume = targetVolume;
+      }
     };
 
     requestAnimationFrame(animate);
@@ -741,11 +794,21 @@ function setupToggles() {
 
   audio.addEventListener('loadedmetadata', syncProgressUI);
   audio.addEventListener('timeupdate', syncProgressUI);
+  audio.addEventListener('durationchange', syncProgressUI);
   audio.addEventListener('play', updatePlayingState);
   audio.addEventListener('pause', updatePlayingState);
   audio.addEventListener('volumechange', () => {
     savePrefs({ volume: audio.volume, muted: audio.muted });
   });
+
+  if (prefs.playIntent) {
+    fadeInAudio().then(() => {
+      updatePlayingState();
+    }).catch(() => {
+      savePrefs({ playIntent: false });
+      updatePlayingState();
+    });
+  }
 
   updatePlayingState();
   syncProgressUI();
