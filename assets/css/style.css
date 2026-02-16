@@ -487,9 +487,10 @@ select:focus-visible,
   width: min(280px, calc(100vw - 2rem));
 }
 
-.letterbox { position: fixed; left: 0; right: 0; height: 28px; background: rgba(0,0,0,0.8); z-index: 40; pointer-events: none; }
-.letterbox-top { top: 0; }
-.letterbox-bottom { bottom: 0; }
+#hero .letterbox { position: absolute; left: 0; right: 0; height: 28px; background: rgba(0,0,0,0.86); z-index: 6; pointer-events: none; display: none; margin: 0; }
+#hero .letterbox-top { top: 0; }
+#hero .letterbox-bottom { bottom: 0; }
+body.cinematic-on #hero .letterbox { display: block; }
 
 .lightbox {
   position: fixed;
