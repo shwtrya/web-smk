@@ -10,7 +10,7 @@
       <stop offset="100%" stop-color="#1A120A" stop-opacity="0.28"/>
     </linearGradient>
   </defs>
-  <image href="/assets/images/gallery-1.jpg" x="0" y="0" width="1920" height="1280" preserveAspectRatio="xMidYMid slice"/>
+  <image href="web-smk/assets/images/gallery-1.jpg" x="0" y="0" width="1920" height="1280" preserveAspectRatio="xMidYMid slice"/>
   <rect x="0" y="0" width="1920" height="1280" fill="url(#goldwash)"/>
   <rect x="0" y="0" width="1920" height="1280" fill="url(#shade)"/>
 </svg>
