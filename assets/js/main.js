@@ -45,6 +45,64 @@ function setupLenis() {
   requestAnimationFrame(raf);
 }
 
+
+function setupHeroVideo() {
+  const heroBg = document.querySelector('.hero-bg');
+  const video = document.getElementById('heroVideo');
+  const fallback = document.getElementById('heroFallback');
+  if (!heroBg || !video || !fallback) return;
+
+  const showFallback = () => {
+    heroBg.classList.add('show-fallback');
+    video.pause();
+  };
+
+  const hideFallback = () => {
+    heroBg.classList.remove('show-fallback');
+  };
+
+  const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  const applyMotionPreference = () => {
+    if (motionQuery.matches) {
+      showFallback();
+      return;
+    }
+
+    hideFallback();
+    video.play().catch(() => {
+      showFallback();
+    });
+  };
+
+  video.addEventListener('error', showFallback);
+  video.addEventListener('stalled', showFallback);
+  video.addEventListener('loadeddata', () => {
+    if (!motionQuery.matches) hideFallback();
+  });
+
+  if (motionQuery.addEventListener) {
+    motionQuery.addEventListener('change', applyMotionPreference);
+  } else {
+    motionQuery.addListener(applyMotionPreference);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      video.pause();
+      return;
+    }
+
+    if (!motionQuery.matches && !heroBg.classList.contains('show-fallback')) {
+      video.play().catch(() => {
+        showFallback();
+      });
+    }
+  });
+
+  applyMotionPreference();
+}
+
 function setupScrollEffects() {
   gsap.utils.toArray('.reveal').forEach((el) => {
     gsap.fromTo(
@@ -275,6 +333,7 @@ function setupTilt() {
 
 startIntro();
 setupTyping();
+setupHeroVideo();
 setupLenis();
 setupScrollEffects();
 setupDust();

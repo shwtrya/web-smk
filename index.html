@@ -64,7 +64,19 @@
     <div id="pointerGlow"></div>
 
     <header class="min-h-screen relative flex items-center justify-center overflow-hidden" id="hero">
-      <div class="hero-bg parallax-layer"></div>
+      <div class="hero-bg parallax-layer">
+        <video id="heroVideo" autoplay muted loop playsinline preload="metadata" aria-hidden="true">
+          <source src="assets/media/hero-cinematic.mp4" type="video/mp4" />
+        </video>
+        <img
+          id="heroFallback"
+          src="assets/images/hero-placeholder.svg"
+          alt="Suasana sinematik SMKN 1 Cileungsi"
+          loading="eager"
+          fetchpriority="high"
+        />
+        <div class="hero-gradient" aria-hidden="true"></div>
+      </div>
       <div class="hero-overlay"></div>
       <canvas id="dustCanvas" class="absolute inset-0 w-full h-full"></canvas>
 
