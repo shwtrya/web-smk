@@ -237,10 +237,99 @@ function setupProgressBar() {
 
 function setupPointerGlow() {
   if (!pointerGlow) return;
-  window.addEventListener('pointermove', (e) => {
-    pointerGlow.style.left = `${e.clientX}px`;
-    pointerGlow.style.top = `${e.clientY}px`;
+
+  const mobileCoarseQuery = window.matchMedia('(max-width: 900px), (pointer: coarse)');
+  let targetX = window.innerWidth * 0.5;
+  let targetY = window.innerHeight * 0.5;
+  let currentX = targetX;
+  let currentY = targetY;
+  let glowFrame = null;
+
+  const updateGlow = () => {
+    const smoothing = mobileCoarseQuery.matches ? 0.15 : 0.1;
+    currentX += (targetX - currentX) * smoothing;
+    currentY += (targetY - currentY) * smoothing;
+
+    pointerGlow.style.left = `${currentX}px`;
+    pointerGlow.style.top = `${currentY}px`;
+
+    if (Math.abs(targetX - currentX) > 0.2 || Math.abs(targetY - currentY) > 0.2) {
+      glowFrame = requestAnimationFrame(updateGlow);
+      return;
+    }
+
+    glowFrame = null;
+  };
+
+  const requestGlowUpdate = () => {
+    if (glowFrame !== null) return;
+    glowFrame = requestAnimationFrame(updateGlow);
+  };
+
+  const handleMove = (e) => {
+    targetX = e.clientX;
+    targetY = e.clientY;
+    requestGlowUpdate();
+  };
+
+  window.addEventListener('pointermove', handleMove);
+  window.addEventListener('pointerdown', handleMove);
+  window.addEventListener('resize', () => {
+    if (mobileCoarseQuery.matches) {
+      targetX = window.innerWidth * 0.5;
+      targetY = window.innerHeight * 0.5;
+      requestGlowUpdate();
+    }
   });
+
+  requestGlowUpdate();
+}
+
+function setupPointerReactiveCards() {
+  const cards = document.querySelectorAll('.scene-card, .memory-card');
+  if (!cards.length) return;
+
+  const mobileCoarseQuery = window.matchMedia('(max-width: 900px), (pointer: coarse), (prefers-reduced-motion: reduce)');
+
+  const disableEffects = () => {
+    cards.forEach((card) => {
+      card.classList.remove('is-pointer-active');
+      card.style.removeProperty('--pointer-x');
+      card.style.removeProperty('--pointer-y');
+    });
+  };
+
+  const bindInteractive = (card) => {
+    card.addEventListener('pointermove', (event) => {
+      if (mobileCoarseQuery.matches) return;
+      const rect = card.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * 100;
+      const y = ((event.clientY - rect.top) / rect.height) * 100;
+      card.style.setProperty('--pointer-x', `${Math.max(0, Math.min(100, x))}%`);
+      card.style.setProperty('--pointer-y', `${Math.max(0, Math.min(100, y))}%`);
+      card.classList.add('is-pointer-active');
+    });
+
+    card.addEventListener('pointerleave', () => {
+      card.classList.remove('is-pointer-active');
+    });
+  };
+
+  cards.forEach(bindInteractive);
+
+  const syncMode = () => {
+    if (mobileCoarseQuery.matches) {
+      disableEffects();
+    }
+  };
+
+  if (typeof mobileCoarseQuery.addEventListener === 'function') {
+    mobileCoarseQuery.addEventListener('change', syncMode);
+  } else if (typeof mobileCoarseQuery.addListener === 'function') {
+    mobileCoarseQuery.addListener(syncMode);
+  }
+
+  syncMode();
 }
 
 function renderGallery(items) {
@@ -605,6 +694,7 @@ setupScrollEffects();
 setupDust();
 setupProgressBar();
 setupPointerGlow();
+setupPointerReactiveCards();
 setupGallery();
 setupMessages();
 setupToggles();
