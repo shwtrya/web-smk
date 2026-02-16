@@ -254,6 +254,100 @@ function setupGallery() {
   renderGallery(activeGallery);
 
   const filters = document.getElementById('filters');
+  const lightbox = document.getElementById('lightbox');
+  const imageA = document.getElementById('lightboxImageA');
+  const imageB = document.getElementById('lightboxImageB');
+  const caption = document.getElementById('lightboxCaption');
+  const dateEl = document.getElementById('lightboxDate');
+  const locationEl = document.getElementById('lightboxLocation');
+  const indexEl = document.getElementById('lightboxIndex');
+  const slideshowBtn = document.getElementById('slideshowBtn');
+  const cinematicToggle = document.getElementById('lightboxCinematicToggle');
+
+  let activeBuffer = 0;
+
+  const isLightboxOpen = () => lightbox && !lightbox.classList.contains('hidden');
+
+  const stopSlideshow = () => {
+    if (!slideshow) return;
+    clearInterval(slideshow);
+    slideshow = null;
+    if (slideshowBtn) slideshowBtn.textContent = 'Start Slideshow';
+  };
+
+  const formatIndex = (current, total) => `${String(current).padStart(2, '0')}/${String(total).padStart(2, '0')}`;
+
+  const renderMeta = () => {
+    const item = activeGallery[lightboxIndex];
+    if (!item) return;
+    const [date = '', location = ''] = item.meta.split('·').map((part) => part.trim());
+    if (caption) caption.textContent = item.caption;
+    if (dateEl) dateEl.textContent = date;
+    if (locationEl) locationEl.textContent = location;
+    if (indexEl) indexEl.textContent = formatIndex(lightboxIndex + 1, activeGallery.length);
+  };
+
+  const syncImage = (immediate = false) => {
+    const item = activeGallery[lightboxIndex];
+    if (!item || !imageA || !imageB) return;
+
+    const incoming = activeBuffer === 0 ? imageB : imageA;
+    const outgoing = activeBuffer === 0 ? imageA : imageB;
+
+    const activateIncoming = () => {
+      incoming.classList.add('is-active');
+      outgoing.classList.remove('is-active');
+      activeBuffer = activeBuffer === 0 ? 1 : 0;
+    };
+
+    incoming.alt = item.caption;
+    incoming.src = item.src;
+
+    if (immediate || !outgoing.src) {
+      activateIncoming();
+      return;
+    }
+
+    if (incoming.complete) {
+      requestAnimationFrame(activateIncoming);
+    } else {
+      incoming.onload = () => {
+        activateIncoming();
+        incoming.onload = null;
+      };
+    }
+  };
+
+  const sync = (immediate = false) => {
+    renderMeta();
+    syncImage(immediate);
+  };
+
+  const openLightbox = (index = 0, immediate = true) => {
+    lightboxIndex = index;
+    sync(immediate);
+    lightbox?.classList.remove('hidden');
+    lightbox?.setAttribute('aria-hidden', 'false');
+  };
+
+  const closeLightbox = () => {
+    lightbox?.classList.add('hidden');
+    lightbox?.setAttribute('aria-hidden', 'true');
+    stopSlideshow();
+  };
+
+  const nextPhoto = () => {
+    if (!activeGallery.length) return;
+    lightboxIndex = (lightboxIndex + 1) % activeGallery.length;
+    sync();
+  };
+
+  const prevPhoto = () => {
+    if (!activeGallery.length) return;
+    lightboxIndex = (lightboxIndex - 1 + activeGallery.length) % activeGallery.length;
+    sync();
+  };
+
   if (filters) {
     filters.addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-filter]');
@@ -263,57 +357,66 @@ function setupGallery() {
       const filter = btn.dataset.filter;
       activeGallery = filter === 'all' ? [...galleryItems] : galleryItems.filter((g) => g.category === filter);
       renderGallery(activeGallery);
+      lightboxIndex = 0;
+      if (isLightboxOpen()) sync(true);
     });
   }
-
-  const lightbox = document.getElementById('lightbox');
-  const img = document.getElementById('lightboxImage');
-  const cap = document.getElementById('lightboxCaption');
 
   document.addEventListener('click', (e) => {
     const item = e.target.closest('.gallery-item');
     if (!item) return;
-    lightboxIndex = Number(item.dataset.index) || 0;
-    const data = activeGallery[lightboxIndex];
-    img.src = data.src;
-    cap.textContent = `${data.caption} • ${data.meta}`;
-    lightbox.classList.remove('hidden');
+    const nextIndex = Number(item.dataset.index) || 0;
+    openLightbox(nextIndex, true);
   });
 
-  const sync = () => {
-    const data = activeGallery[lightboxIndex];
-    if (!data) return;
-    img.src = data.src;
-    cap.textContent = `${data.caption} • ${data.meta}`;
-  };
+  document.getElementById('prevPhoto')?.addEventListener('click', prevPhoto);
+  document.getElementById('nextPhoto')?.addEventListener('click', nextPhoto);
+  document.getElementById('closeLightbox')?.addEventListener('click', closeLightbox);
 
-  document.getElementById('prevPhoto')?.addEventListener('click', () => {
-    lightboxIndex = (lightboxIndex - 1 + activeGallery.length) % activeGallery.length;
-    sync();
-  });
-  document.getElementById('nextPhoto')?.addEventListener('click', () => {
-    lightboxIndex = (lightboxIndex + 1) % activeGallery.length;
-    sync();
-  });
-  document.getElementById('closeLightbox')?.addEventListener('click', () => {
-    lightbox.classList.add('hidden');
+  cinematicToggle?.addEventListener('click', () => {
+    const enabled = lightbox?.classList.toggle('cinematic-mode');
+    cinematicToggle.textContent = `Cinematic: ${enabled ? 'On' : 'Off'}`;
+    cinematicToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
   });
 
-  document.getElementById('slideshowBtn')?.addEventListener('click', (e) => {
+  slideshowBtn?.addEventListener('click', () => {
     if (slideshow) {
-      clearInterval(slideshow);
-      slideshow = null;
-      e.currentTarget.textContent = 'Start Slideshow';
+      stopSlideshow();
       return;
     }
-    e.currentTarget.textContent = 'Stop Slideshow';
-    lightbox.classList.remove('hidden');
-    sync();
-    slideshow = setInterval(() => {
-      lightboxIndex = (lightboxIndex + 1) % activeGallery.length;
-      gsap.fromTo(img, { opacity: 0.2 }, { opacity: 1, duration: 0.6 });
-      sync();
-    }, 2500);
+
+    if (!activeGallery.length) return;
+    openLightbox(lightboxIndex, false);
+    slideshowBtn.textContent = 'Stop Slideshow';
+    slideshow = setInterval(nextPhoto, 2500);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const lbOpen = isLightboxOpen();
+
+    if (e.key === 'Escape' && lbOpen) {
+      closeLightbox();
+      return;
+    }
+
+    if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && lbOpen) {
+      e.preventDefault();
+      if (e.key === 'ArrowRight') nextPhoto();
+      if (e.key === 'ArrowLeft') prevPhoto();
+      return;
+    }
+
+    if (e.code === 'Space' && (lbOpen || slideshow)) {
+      e.preventDefault();
+      if (slideshow) {
+        stopSlideshow();
+      } else {
+        if (!activeGallery.length) return;
+        openLightbox(lightboxIndex, false);
+        if (slideshowBtn) slideshowBtn.textContent = 'Stop Slideshow';
+        slideshow = setInterval(nextPhoto, 2500);
+      }
+    }
   });
 }
 

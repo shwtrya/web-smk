@@ -259,14 +259,33 @@
       <audio id="bgMusic" loop preload="none" src="assets/media/nostalgia.mp3"></audio>
     </div>
 
-    <div id="lightbox" class="lightbox hidden">
-      <button id="closeLightbox" class="lightbox-close">✕</button>
-      <button id="prevPhoto" class="lightbox-nav">‹</button>
-      <figure>
-        <img id="lightboxImage" alt="Gallery image" />
-        <figcaption id="lightboxCaption"></figcaption>
+    <div id="lightbox" class="lightbox hidden" aria-hidden="true">
+      <div class="film-grain lightbox-grain" aria-hidden="true"></div>
+      <div class="lightbox-letterbox lightbox-letterbox-top" aria-hidden="true"></div>
+      <div class="lightbox-letterbox lightbox-letterbox-bottom" aria-hidden="true"></div>
+
+      <button id="closeLightbox" class="lightbox-close" aria-label="Close lightbox">✕</button>
+      <button id="lightboxCinematicToggle" class="lightbox-cinematic-toggle" aria-pressed="false">Cinematic: Off</button>
+      <button id="prevPhoto" class="lightbox-nav" aria-label="Previous photo">‹</button>
+
+      <figure class="lightbox-figure">
+        <div class="lightbox-stage">
+          <img id="lightboxImageA" class="lightbox-image is-active" alt="Gallery image" />
+          <img id="lightboxImageB" class="lightbox-image" alt="Gallery image" />
+        </div>
+        <figcaption class="lightbox-meta">
+          <div class="lightbox-meta-main">
+            <p id="lightboxCaption" class="lightbox-caption"></p>
+            <div class="lightbox-meta-details">
+              <span id="lightboxDate"></span>
+              <span id="lightboxLocation"></span>
+            </div>
+          </div>
+          <p id="lightboxIndex" class="lightbox-index">00/00</p>
+        </figcaption>
       </figure>
-      <button id="nextPhoto" class="lightbox-nav">›</button>
+
+      <button id="nextPhoto" class="lightbox-nav" aria-label="Next photo">›</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
