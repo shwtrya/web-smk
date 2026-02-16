@@ -211,15 +211,45 @@ body { margin: 0; }
 }
 .scene-copy { color: rgba(226, 231, 241, 0.9); line-height: 1.7; }
 
-.scene-card.is-active {
-  border-color: rgba(212, 175, 55, 0.65);
-  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.18), 0 0 26px rgba(212, 175, 55, 0.2), 0 24px 46px rgba(0,0,0,0.38);
+.scene-card.scene-active .scene-title {
+  color: #f9e7ac;
+  text-shadow: 0 0 14px rgba(212, 175, 55, 0.45);
+}
+
+
+.scene-card img {
+  transform: scale(1.06);
+  filter: contrast(0.9) saturate(0.88) brightness(0.98) sepia(0.16) hue-rotate(-8deg);
+  transition: filter .75s var(--story-ease), transform .75s var(--story-ease);
+  will-change: transform, filter;
+}
+
+.scene-card.scene-active {
+  border-color: rgba(212, 175, 55, 0.62);
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.2), 0 0 24px rgba(212, 175, 55, 0.2), 0 24px 46px rgba(0,0,0,0.42);
   transform: translateY(-2px);
 }
 
-.scene-card.is-active .scene-title {
-  color: #f9e7ac;
-  text-shadow: 0 0 14px rgba(212, 175, 55, 0.45);
+.scene-card.scene-active img {
+  filter: contrast(1.05) saturate(1.02) brightness(1.03) sepia(0.1) hue-rotate(-6deg);
+}
+
+.scene-card.scene-active .scene-copy {
+  color: rgba(236, 241, 250, 0.96);
+}
+
+.scene-transition {
+  height: clamp(34px, 5vw, 56px);
+  margin: -0.25rem auto 0.45rem;
+  width: min(94%, 860px);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(245, 231, 196, 0.3) 0%, rgba(245, 231, 196, 0.08) 42%, rgba(245, 231, 196, 0) 76%),
+    linear-gradient(180deg, rgba(212, 175, 55, 0.04) 0%, rgba(245, 231, 196, 0.2) 52%, rgba(212, 175, 55, 0.03) 100%);
+  filter: blur(11px);
+  transform-origin: center;
+  pointer-events: none;
+  opacity: 0.18;
 }
 
 .scene-fade {

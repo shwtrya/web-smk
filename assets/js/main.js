@@ -152,54 +152,48 @@ function setupScrollEffects() {
 
   const sceneCards = gsap.utils.toArray('.scene-card');
   if (sceneCards.length) {
-    sceneCards.forEach((card, index) => {
-      if (index === sceneCards.length - 1 || card.nextElementSibling?.classList.contains('scene-fade')) return;
-      const fade = document.createElement('div');
-      fade.className = 'scene-fade';
-      card.insertAdjacentElement('afterend', fade);
-    });
-
     sceneCards.forEach((card) => {
       const image = card.querySelector('img');
-      const textNodes = [
-        card.querySelector('.scene-tag'),
-        card.querySelector('.scene-title'),
-        card.querySelector('.scene-copy')
-      ].filter(Boolean);
+      const tag = card.querySelector('.scene-tag');
+      const title = card.querySelector('.scene-title');
+      const copy = card.querySelector('.scene-copy');
+      const textNodes = [tag, title, copy].filter(Boolean);
 
-      gsap.set(card, { opacity: 0, filter: 'blur(10px)' });
-      if (image) gsap.set(image, { scale: 1.08, transformOrigin: 'center center' });
-      if (textNodes.length) gsap.set(textNodes, { opacity: 0, y: 20, filter: 'blur(6px)' });
+      gsap.set(card, { opacity: 0, filter: 'blur(12px)' });
+      if (image) gsap.set(image, { scale: 1.06, transformOrigin: 'center center' });
+      if (textNodes.length) gsap.set(textNodes, { opacity: 0, y: 22, filter: 'blur(9px)' });
 
       const sceneTimeline = gsap.timeline({
-        defaults: { ease: 'sine.inOut' },
+        defaults: { ease: 'power2.out' },
         scrollTrigger: {
           trigger: card,
-          start: 'top 82%',
-          end: 'bottom 32%',
-          scrub: 0.7,
-          toggleClass: { targets: card, className: 'is-active' }
+          start: 'top 84%',
+          end: 'bottom 38%',
+          scrub: 0.65,
+          onToggle: ({ isActive }) => card.classList.toggle('scene-active', isActive)
         }
       });
 
-      sceneTimeline.to(card, { opacity: 1, filter: 'blur(0px)', duration: 0.36 }, 0);
-      if (image) sceneTimeline.to(image, { scale: 1, duration: 0.8 }, 0);
-      if (textNodes.length) sceneTimeline.to(textNodes, { opacity: 1, y: 0, filter: 'blur(0px)', stagger: 0.14, duration: 0.5 }, 0.12);
+      sceneTimeline.to(card, { opacity: 1, filter: 'blur(0px)', duration: 0.52, ease: 'power2.out' }, 0);
+      if (image) sceneTimeline.to(image, { scale: 1, duration: 0.9, ease: 'sine.out' }, 0.02);
+      if (tag) sceneTimeline.to(tag, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.36 }, 0.12);
+      if (title) sceneTimeline.to(title, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.42 }, 0.24);
+      if (copy) sceneTimeline.to(copy, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.48 }, 0.36);
     });
 
-    gsap.utils.toArray('.scene-fade').forEach((fade) => {
+    gsap.utils.toArray('.scene-transition').forEach((transition) => {
       gsap.fromTo(
-        fade,
-        { opacity: 0.05, scaleX: 0.92 },
+        transition,
+        { opacity: 0.08, scaleX: 0.9 },
         {
-          opacity: 0.5,
+          opacity: 0.54,
           scaleX: 1,
           ease: 'sine.inOut',
           scrollTrigger: {
-            trigger: fade,
+            trigger: transition,
             start: 'top 94%',
             end: 'bottom 56%',
-            scrub: 0.6
+            scrub: 0.55
           }
         }
       );
