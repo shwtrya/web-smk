@@ -38,11 +38,21 @@ function setupTyping() {
   if (!line) return;
   const text = line.dataset.text || '';
   let idx = 0;
-  const timer = setInterval(() => {
-    line.textContent = text.slice(0, idx);
-    idx += 1;
-    if (idx > text.length + 1) clearInterval(timer);
-  }, 65);
+  let lastTick = performance.now();
+
+  const tick = (now) => {
+    if (now - lastTick >= 65) {
+      line.textContent = text.slice(0, idx);
+      idx += 1;
+      lastTick = now;
+    }
+
+    if (idx <= text.length + 1) {
+      requestAnimationFrame(tick);
+    }
+  };
+
+  requestAnimationFrame(tick);
 }
 
 function setupLenis() {
@@ -417,7 +427,6 @@ function renderGallery(items) {
 
 let activeGallery = [...galleryItems];
 let lightboxIndex = 0;
-let slideshow = null;
 
 function setupGallery() {
   renderGallery(activeGallery);
@@ -436,55 +445,174 @@ function setupGallery() {
   const progressEl = document.getElementById('lightboxProgressBar');
   const progressWrap = document.querySelector('.lightbox-progress');
   const counterEl = document.getElementById('lightboxCounter');
+  const bgMusic = document.getElementById('bgMusic');
+  const volumeControl = document.getElementById('volumeControl');
+  const projectorFx = document.getElementById('projectorFx');
+  const grainCanvas = document.getElementById('lightboxGrainCanvas');
 
   let activeBuffer = 0;
+  let slideshowState = null;
+  let navLocked = false;
+  let captionDelay = null;
+  let cinematicMode = false;
+  let isHoverPaused = false;
+
+  const baseSlideDuration = 5200;
+  const cinematicSlideDuration = 9000;
+  const transitionDuration = 1200;
+  const motionPref = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   const isLightboxOpen = () => lightbox && !lightbox.classList.contains('hidden');
+  const getSlideDuration = () => (cinematicMode ? cinematicSlideDuration : baseSlideDuration);
+
+  const preloadAround = () => {
+    if (!activeGallery.length) return;
+    const targets = [
+      activeGallery[(lightboxIndex + 1) % activeGallery.length]?.src,
+      activeGallery[(lightboxIndex - 1 + activeGallery.length) % activeGallery.length]?.src
+    ].filter(Boolean);
+
+    targets.forEach((src) => {
+      const preloader = new Image();
+      preloader.decoding = 'async';
+      preloader.loading = 'eager';
+      preloader.src = src;
+    });
+  };
+
+  const formatIndex = (current, total) => `${String(current).padStart(2, '0')}/${String(total).padStart(2, '0')}`;
+
+  const setProgress = (value = 0, withFade = false) => {
+    const normalized = Math.max(0, Math.min(100, value));
+    if (progressEl) {
+      progressEl.style.opacity = withFade ? '0' : '1';
+      progressEl.style.width = `${normalized}%`;
+      if (withFade) requestAnimationFrame(() => { progressEl.style.opacity = '1'; });
+    }
+    if (progressWrap) progressWrap.setAttribute('aria-valuenow', `${Math.round(normalized)}`);
+  };
 
   const stopSlideshow = () => {
-    if (!slideshow) return;
-    clearInterval(slideshow);
-    slideshow = null;
+    if (!slideshowState) return;
+    slideshowState.running = false;
+    slideshowState = null;
     if (slideshowBtn) slideshowBtn.textContent = 'Start Slideshow';
     if (lightboxSlideshowBtn) {
       lightboxSlideshowBtn.textContent = '▶ Play Slideshow';
       lightboxSlideshowBtn.setAttribute('aria-pressed', 'false');
     }
-    if (progressEl) progressEl.style.width = '0%';
-    if (progressWrap) progressWrap.setAttribute('aria-valuenow', '0');
+    setProgress(0, true);
+    if (bgMusic && !bgMusic.paused) {
+      const current = bgMusic.volume;
+      const end = Math.min(1, Math.max(0, Number(volumeControl?.value || 0.5)));
+      const startedAt = performance.now();
+      const duration = 850;
+      const fadeDown = (now) => {
+        const t = Math.min(1, (now - startedAt) / duration);
+        bgMusic.volume = current + (end - current) * t;
+        if (t < 1 && !bgMusic.paused) requestAnimationFrame(fadeDown);
+      };
+      requestAnimationFrame(fadeDown);
+    }
   };
 
-  const formatIndex = (current, total) => `${String(current).padStart(2, '0')}/${String(total).padStart(2, '0')}`;
+  const runSlideshow = () => {
+    if (!slideshowState?.running) return;
+    const duration = slideshowState.duration;
+    const elapsed = performance.now() - slideshowState.startedAt - slideshowState.pausedMs;
+    const progress = (elapsed / duration) * 100;
 
-  const slideshowInterval = 2500;
+    if (!slideshowState.hoverPaused) {
+      setProgress(progress);
+    }
 
-  const renderProgress = (value = 0) => {
-    const normalized = Math.max(0, Math.min(100, value));
-    if (progressEl) progressEl.style.width = `${normalized}%`;
-    if (progressWrap) progressWrap.setAttribute('aria-valuenow', `${Math.round(normalized)}`);
+    if (elapsed >= duration) {
+      slideshowState.startedAt = performance.now();
+      slideshowState.pausedMs = 0;
+      nextPhoto('next', true);
+      return;
+    }
+
+    slideshowState.frame = requestAnimationFrame(runSlideshow);
   };
 
-  const animateProgress = () => {
-    if (!slideshow) return;
-    renderProgress(0);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (!slideshow) return;
-        renderProgress(100);
-      });
-    });
+  const startSlideshow = () => {
+    if (!activeGallery.length || slideshowState) return;
+    openLightbox(lightboxIndex, true);
+    if (slideshowBtn) slideshowBtn.textContent = 'Stop Slideshow';
+    if (lightboxSlideshowBtn) {
+      lightboxSlideshowBtn.textContent = '❚❚ Pause Slideshow';
+      lightboxSlideshowBtn.setAttribute('aria-pressed', 'true');
+    }
+
+    if (bgMusic?.paused) {
+      const target = Math.min(1, Math.max(0, Number(volumeControl?.value || 0.3)));
+      bgMusic.volume = 0;
+      bgMusic.play().then(() => {
+        const cinematicBoost = cinematicMode ? 0.12 : 0.04;
+        const end = Math.min(1, target + cinematicBoost);
+        const start = performance.now();
+        const fadeIn = (now) => {
+          const t = Math.min(1, (now - start) / 1500);
+          bgMusic.volume = end * t;
+          if (t < 1 && !bgMusic.paused) requestAnimationFrame(fadeIn);
+        };
+        requestAnimationFrame(fadeIn);
+      }).catch(() => {});
+    }
+
+    slideshowState = {
+      running: true,
+      startedAt: performance.now(),
+      duration: getSlideDuration(),
+      pausedMs: 0,
+      hoverPaused: false,
+      hoverAt: 0,
+      frame: requestAnimationFrame(runSlideshow)
+    };
+    setProgress(0, true);
   };
 
   const renderMeta = () => {
     const item = activeGallery[lightboxIndex];
     if (!item) return;
     const [date = '', location = ''] = item.meta.split('·').map((part) => part.trim());
-    if (caption) caption.textContent = item.caption;
+    if (caption) {
+      caption.classList.remove('is-visible');
+      caption.textContent = item.caption;
+      if (captionDelay) clearTimeout(captionDelay);
+      captionDelay = setTimeout(() => caption.classList.add('is-visible'), 1000);
+    }
     if (dateEl) dateEl.textContent = date;
     if (locationEl) locationEl.textContent = location;
     const counter = formatIndex(lightboxIndex + 1, activeGallery.length);
     if (indexEl) indexEl.textContent = counter;
     if (counterEl) counterEl.textContent = counter;
+  };
+
+  const panForIndex = (index) => ((index % 5) - 2) * 0.7;
+  const zoomForIndex = (index) => 1.05 + ((index % 3) * 0.02);
+
+  const animateKenBurns = (el) => {
+    if (!el) return;
+    const startPan = panForIndex(lightboxIndex);
+    const endPan = startPan * -1;
+    const startScale = zoomForIndex(lightboxIndex);
+    const endScale = Math.min(1.1, startScale + 0.03);
+    const startedAt = performance.now();
+    const duration = getSlideDuration();
+
+    const frame = (now) => {
+      if (!el.classList.contains('is-active')) return;
+      const t = Math.min(1, (now - startedAt) / duration);
+      const eased = t * (2 - t);
+      const x = startPan + (endPan - startPan) * eased;
+      const scale = startScale + (endScale - startScale) * eased;
+      el.style.transform = `translate3d(${x}%, 0, 0) scale(${scale})`;
+      if (t < 1) requestAnimationFrame(frame);
+    };
+
+    requestAnimationFrame(frame);
   };
 
   const syncImage = (immediate = false) => {
@@ -495,39 +623,45 @@ function setupGallery() {
     const outgoing = activeBuffer === 0 ? imageA : imageB;
 
     const activateIncoming = () => {
+      lightbox?.classList.add('is-transitioning');
       outgoing.classList.remove('is-active', 'is-entering');
       outgoing.classList.add('is-exiting');
-
       incoming.classList.remove('is-exiting');
       incoming.classList.add('is-active', 'is-entering');
 
-      if (immediate || !outgoing.src) {
+      animateKenBurns(incoming);
+
+      if (projectorFx) {
+        projectorFx.currentTime = 0;
+        projectorFx.volume = cinematicMode ? 0.12 : 0.07;
+        projectorFx.play().catch(() => {});
+      }
+
+      const clear = () => {
         outgoing.classList.remove('is-exiting');
         incoming.classList.remove('is-entering');
+        lightbox?.classList.remove('is-transitioning');
+      };
+
+      if (immediate || motionPref.matches || !outgoing.src) {
+        clear();
       } else {
-        setTimeout(() => {
-          outgoing.classList.remove('is-exiting');
-          incoming.classList.remove('is-entering');
-        }, 620);
+        setTimeout(clear, transitionDuration);
       }
 
       activeBuffer = activeBuffer === 0 ? 1 : 0;
+      preloadAround();
     };
 
     incoming.alt = item.caption;
     incoming.src = item.src;
 
-    if (immediate || !outgoing.src) {
-      activateIncoming();
-      return;
-    }
-
-    if (incoming.complete) {
+    if (immediate || !outgoing.src || incoming.complete) {
       requestAnimationFrame(activateIncoming);
     } else {
       incoming.onload = () => {
-        activateIncoming();
         incoming.onload = null;
+        requestAnimationFrame(activateIncoming);
       };
     }
   };
@@ -548,21 +682,42 @@ function setupGallery() {
     lightbox?.classList.add('hidden');
     lightbox?.setAttribute('aria-hidden', 'true');
     stopSlideshow();
-    renderProgress(0);
+    setProgress(0, true);
   };
 
-  const nextPhoto = () => {
-    if (!activeGallery.length) return;
-    lightboxIndex = (lightboxIndex + 1) % activeGallery.length;
-    sync();
-    if (slideshow) animateProgress();
+  const nextPhoto = (direction = 'next', fromSlideshow = false) => {
+    if (!activeGallery.length || navLocked) return;
+    navLocked = true;
+    const delta = direction === 'next' ? 1 : -1;
+    lightboxIndex = (lightboxIndex + delta + activeGallery.length) % activeGallery.length;
+    sync(false);
+    if (slideshowState && !fromSlideshow) {
+      slideshowState.startedAt = performance.now();
+      slideshowState.pausedMs = 0;
+      slideshowState.duration = getSlideDuration();
+      setProgress(0, true);
+    }
+    setTimeout(() => { navLocked = false; }, 280);
   };
 
-  const prevPhoto = () => {
-    if (!activeGallery.length) return;
-    lightboxIndex = (lightboxIndex - 1 + activeGallery.length) % activeGallery.length;
-    sync();
-  };
+  const prevPhoto = () => nextPhoto('prev');
+
+  progressWrap?.addEventListener('pointerenter', () => {
+    if (!slideshowState) return;
+    isHoverPaused = true;
+    slideshowState.hoverPaused = true;
+    slideshowState.hoverAt = performance.now();
+    progressWrap.classList.add('is-paused');
+  });
+
+  progressWrap?.addEventListener('pointerleave', () => {
+    if (!slideshowState || !isHoverPaused) return;
+    isHoverPaused = false;
+    slideshowState.hoverPaused = false;
+    slideshowState.pausedMs += performance.now() - slideshowState.hoverAt;
+    progressWrap.classList.remove('is-paused');
+    slideshowState.frame = requestAnimationFrame(runSlideshow);
+  });
 
   if (filters) {
     filters.addEventListener('click', (e) => {
@@ -575,7 +730,7 @@ function setupGallery() {
       renderGallery(activeGallery);
       lightboxIndex = 0;
       stopSlideshow();
-      renderProgress(0);
+      setProgress(0, true);
       if (isLightboxOpen()) sync(true);
     });
   }
@@ -588,44 +743,64 @@ function setupGallery() {
   });
 
   document.getElementById('prevPhoto')?.addEventListener('click', prevPhoto);
-  document.getElementById('nextPhoto')?.addEventListener('click', nextPhoto);
+  document.getElementById('nextPhoto')?.addEventListener('click', () => nextPhoto('next'));
   document.getElementById('closeLightbox')?.addEventListener('click', closeLightbox);
 
   cinematicToggle?.addEventListener('click', () => {
-    const enabled = lightbox?.classList.toggle('cinematic-mode');
-    cinematicToggle.textContent = `Cinematic: ${enabled ? 'On' : 'Off'}`;
-    cinematicToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    cinematicMode = lightbox?.classList.toggle('cinematic-mode');
+    cinematicToggle.textContent = `Cinematic: ${cinematicMode ? 'On' : 'Off'}`;
+    cinematicToggle.setAttribute('aria-pressed', cinematicMode ? 'true' : 'false');
+
+    document.dispatchEvent(new CustomEvent('smk:cinematic-mode', { detail: { enabled: cinematicMode } }));
+
+    if (slideshowState) {
+      slideshowState.duration = getSlideDuration();
+      slideshowState.startedAt = performance.now();
+      slideshowState.pausedMs = 0;
+      setProgress(0, true);
+    }
+
+    if (bgMusic && !bgMusic.paused) {
+      const base = Math.min(1, Math.max(0, Number(volumeControl?.value || 0.35)));
+      bgMusic.volume = Math.min(1, base + (cinematicMode ? 0.12 : 0.04));
+    }
   });
 
-  const startSlideshow = () => {
-    if (!activeGallery.length || slideshow) return;
-    openLightbox(lightboxIndex, false);
-    if (slideshowBtn) slideshowBtn.textContent = 'Stop Slideshow';
-    if (lightboxSlideshowBtn) {
-      lightboxSlideshowBtn.textContent = '❚❚ Pause Slideshow';
-      lightboxSlideshowBtn.setAttribute('aria-pressed', 'true');
-    }
-    slideshow = setInterval(nextPhoto, slideshowInterval);
-    animateProgress();
-  };
-
   slideshowBtn?.addEventListener('click', () => {
-    if (slideshow) {
+    if (slideshowState) {
       stopSlideshow();
       return;
     }
-
     startSlideshow();
   });
 
   lightboxSlideshowBtn?.addEventListener('click', () => {
-    if (slideshow) {
+    if (slideshowState) {
       stopSlideshow();
       return;
     }
-
     startSlideshow();
   });
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  lightbox?.addEventListener('touchstart', (e) => {
+    const touch = e.changedTouches?.[0];
+    if (!touch) return;
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+  }, { passive: true });
+
+  lightbox?.addEventListener('touchend', (e) => {
+    const touch = e.changedTouches?.[0];
+    if (!touch) return;
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+    if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0) nextPhoto('next');
+    else prevPhoto();
+  }, { passive: true });
 
   document.addEventListener('keydown', (e) => {
     const lbOpen = isLightboxOpen();
@@ -637,20 +812,58 @@ function setupGallery() {
 
     if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && lbOpen) {
       e.preventDefault();
-      if (e.key === 'ArrowRight') nextPhoto();
+      if (e.key === 'ArrowRight') nextPhoto('next');
       if (e.key === 'ArrowLeft') prevPhoto();
       return;
     }
 
-    if (e.code === 'Space' && (lbOpen || slideshow)) {
+    if (e.code === 'Space' && (lbOpen || slideshowState)) {
       e.preventDefault();
-      if (slideshow) {
+      if (slideshowState) {
         stopSlideshow();
       } else {
         startSlideshow();
       }
     }
   });
+
+  const drawGrain = () => {
+    if (!grainCanvas || !lightbox) return;
+    const ctx = grainCanvas.getContext('2d', { alpha: true });
+    if (!ctx) return;
+
+    const resize = () => {
+      grainCanvas.width = lightbox.clientWidth;
+      grainCanvas.height = lightbox.clientHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const frame = () => {
+      const enabled = lightbox.classList.contains('cinematic-mode') && isLightboxOpen();
+      if (enabled) {
+        const w = grainCanvas.width;
+        const h = grainCanvas.height;
+        const imageData = ctx.createImageData(w, h);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const v = Math.random() * 255;
+          data[i] = v;
+          data[i + 1] = v;
+          data[i + 2] = v;
+          data[i + 3] = 10;
+        }
+        ctx.putImageData(imageData, 0, 0);
+      } else {
+        ctx.clearRect(0, 0, grainCanvas.width, grainCanvas.height);
+      }
+      requestAnimationFrame(frame);
+    };
+
+    requestAnimationFrame(frame);
+  };
+
+  drawGrain();
 }
 
 function setupMessages() {
