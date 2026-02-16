@@ -5,7 +5,7 @@ const scrollProgress = document.getElementById('scrollProgress');
 const pointerGlow = document.getElementById('pointerGlow');
 
 const galleryItems = [
-  { src: 'assets/images/gallery-1.svg', caption: 'Morning Briefing · Kegiatan', category: 'kegiatan', meta: '2023 · Lapangan' },
+  { src: 'assets/images/gallery-1.jpg', caption: 'Morning Briefing · Kegiatan', category: 'kegiatan', meta: '2023 · Lapangan' },
   { src: 'assets/images/gallery-2.svg', caption: 'Project Praktikum Lab', category: 'praktikum', meta: '2024 · Laboratorium' },
   { src: 'assets/images/gallery-3.svg', caption: 'PKL Teamwork', category: 'pkl', meta: '2025 · Dunia Industri' },
   { src: 'assets/images/gallery-4.svg', caption: 'Kelas Favorit', category: 'kelas', meta: '2024 · XII TKJ 1' },
@@ -388,9 +388,29 @@ function renderGallery(items) {
   grid.innerHTML = '';
   items.forEach((item, i) => {
     const figure = document.createElement('figure');
+    const img = document.createElement('img');
+    const figcaption = document.createElement('figcaption');
+    const meta = document.createElement('small');
+
     figure.className = 'gallery-item';
     figure.dataset.index = i;
-    figure.innerHTML = `<img loading="lazy" src="${item.src}" alt="${item.caption}" /><figcaption>${item.caption}<br><small>${item.meta}</small></figcaption>`;
+
+    img.loading = 'lazy';
+    img.src = item.src;
+    img.alt = item.caption;
+    img.onerror = () => {
+      console.error(`[gallery] Missing image asset: ${item.src}`);
+      img.onerror = null;
+      img.src = 'assets/images/hero-placeholder.svg';
+      img.alt = `${item.caption} (placeholder)`;
+    };
+
+    figcaption.append(item.caption);
+    figcaption.append(document.createElement('br'));
+    meta.textContent = item.meta;
+    figcaption.append(meta);
+
+    figure.append(img, figcaption);
     grid.appendChild(figure);
   });
 }
