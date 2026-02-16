@@ -253,12 +253,23 @@ function setupProgressBar() {
 function setupPointerGlow() {
   if (!pointerGlow) return;
 
-  const mobileCoarseQuery = window.matchMedia('(max-width: 900px), (pointer: coarse)');
+  const mobileCoarseQuery = window.matchMedia('(max-width: 900px), (pointer: coarse), (prefers-reduced-motion: reduce)');
+  const runtimeDisableEffects = () => mobileCoarseQuery.matches;
+
+  if (runtimeDisableEffects()) {
+    pointerGlow.style.display = 'none';
+    return;
+  }
+
   let targetX = window.innerWidth * 0.5;
   let targetY = window.innerHeight * 0.5;
   let currentX = targetX;
   let currentY = targetY;
   let glowFrame = null;
+  let lastMove = 0;
+  const moveThrottleMs = 24;
+
+  pointerGlow.style.display = '';
 
   const updateGlow = () => {
     const smoothing = mobileCoarseQuery.matches ? 0.15 : 0.1;
@@ -282,6 +293,10 @@ function setupPointerGlow() {
   };
 
   const handleMove = (e) => {
+    if (runtimeDisableEffects()) return;
+    const now = performance.now();
+    if (now - lastMove < moveThrottleMs) return;
+    lastMove = now;
     targetX = e.clientX;
     targetY = e.clientY;
     requestGlowUpdate();
@@ -290,12 +305,32 @@ function setupPointerGlow() {
   window.addEventListener('pointermove', handleMove);
   window.addEventListener('pointerdown', handleMove);
   window.addEventListener('resize', () => {
-    if (mobileCoarseQuery.matches) {
+    if (runtimeDisableEffects()) {
       targetX = window.innerWidth * 0.5;
       targetY = window.innerHeight * 0.5;
       requestGlowUpdate();
     }
   });
+
+  const syncMode = () => {
+    if (runtimeDisableEffects()) {
+      pointerGlow.style.display = 'none';
+      if (glowFrame !== null) {
+        cancelAnimationFrame(glowFrame);
+        glowFrame = null;
+      }
+      return;
+    }
+
+    pointerGlow.style.display = '';
+    requestGlowUpdate();
+  };
+
+  if (typeof mobileCoarseQuery.addEventListener === 'function') {
+    mobileCoarseQuery.addEventListener('change', syncMode);
+  } else if (typeof mobileCoarseQuery.addListener === 'function') {
+    mobileCoarseQuery.addListener(syncMode);
+  }
 
   requestGlowUpdate();
 }
