@@ -15,3 +15,7 @@ Cara ganti:
 Tip premium look:
 - Gunakan color grading warm cinematic.
 - Tambahkan sedikit vignette di foto sebelum upload.
+
+Catatan repo saat ini:
+- Karena review tidak mendukung file biner, aset di atas dipertahankan sebagai SVG yang memuat foto via URL publik.
+- Nama file tetap sama agar tidak perlu ubah referensi di HTML/JS.
