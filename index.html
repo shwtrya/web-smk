@@ -275,6 +275,11 @@
 
     <div id="lightbox" class="lightbox hidden" aria-hidden="true">
       <div class="film-grain lightbox-grain" aria-hidden="true"></div>
+      <canvas id="lightboxGrainCanvas" class="lightbox-grain-canvas" aria-hidden="true"></canvas>
+      <div class="lightbox-vignette" aria-hidden="true"></div>
+      <div class="lightbox-ambient-glow" aria-hidden="true"></div>
+      <div class="lightbox-motion-blur" aria-hidden="true"></div>
+      <div class="lightbox-light-leak" aria-hidden="true"></div>
       <div class="lightbox-letterbox lightbox-letterbox-top" aria-hidden="true"></div>
       <div class="lightbox-letterbox lightbox-letterbox-bottom" aria-hidden="true"></div>
 
@@ -309,6 +314,8 @@
       </figure>
 
       <button id="nextPhoto" class="lightbox-nav" aria-label="Next photo">›</button>
+
+      <audio id="projectorFx" preload="none" src="assets/media/projector.mp3"></audio>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
