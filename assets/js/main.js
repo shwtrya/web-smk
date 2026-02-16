@@ -62,6 +62,13 @@ function setupHeroVideo() {
   const fallback = document.getElementById('heroFallback');
   if (!heroBg || !video || !fallback) return;
 
+  const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  const prefersDataSaver = Boolean(connection?.saveData);
+  const slowConnection = ['slow-2g', '2g'].includes(connection?.effectiveType || '');
+  let hasLoadedData = false;
+  let loadTimeoutId = null;
+
   const showFallback = () => {
     heroBg.classList.add('show-fallback');
     video.pause();
@@ -71,15 +78,27 @@ function setupHeroVideo() {
     heroBg.classList.remove('show-fallback');
   };
 
-  const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const clearLoadTimeout = () => {
+    if (!loadTimeoutId) return;
+    clearTimeout(loadTimeoutId);
+    loadTimeoutId = null;
+  };
+
+  const armLoadTimeout = () => {
+    clearLoadTimeout();
+    loadTimeoutId = setTimeout(() => {
+      if (!hasLoadedData) showFallback();
+    }, slowConnection || prefersDataSaver ? 1400 : 3200);
+  };
 
   const applyMotionPreference = () => {
-    if (motionQuery.matches) {
+    if (motionQuery.matches || slowConnection || prefersDataSaver) {
       showFallback();
       return;
     }
 
     hideFallback();
+    armLoadTimeout();
     video.play().catch(() => {
       showFallback();
     });
@@ -88,7 +107,9 @@ function setupHeroVideo() {
   video.addEventListener('error', showFallback);
   video.addEventListener('stalled', showFallback);
   video.addEventListener('loadeddata', () => {
-    if (!motionQuery.matches) hideFallback();
+    hasLoadedData = true;
+    clearLoadTimeout();
+    if (!motionQuery.matches && !slowConnection && !prefersDataSaver) hideFallback();
   });
 
   if (motionQuery.addEventListener) {
