@@ -20,7 +20,17 @@ function startIntro() {
   if (!intro || !introProgress) return;
   gsap.to(introProgress, { width: '100%', duration: 2.4, ease: 'power2.inOut' });
   gsap.fromTo(introLines, { y: 18, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.4, duration: 1 });
-  setTimeout(() => gsap.to(intro, { opacity: 0, duration: 0.8, onComplete: () => intro.remove() }), 2600);
+  setTimeout(() => {
+    gsap.to(intro, {
+      opacity: 0,
+      duration: 0.8,
+      onComplete: () => {
+        intro.remove();
+        const hint = document.getElementById('soundtrackHint');
+        hint?.classList.add('is-visible');
+      }
+    });
+  }, 2600);
 }
 
 function setupTyping() {
@@ -459,21 +469,118 @@ function setupToggles() {
   });
 
   const audio = document.getElementById('bgMusic');
+  const musicPlayer = document.querySelector('.music-player');
   const musicToggle = document.getElementById('musicToggle');
   const volumeControl = document.getElementById('volumeControl');
+  const audioProgress = document.getElementById('audioProgress');
+  const currentTime = document.getElementById('currentTime');
+  const durationTime = document.getElementById('durationTime');
+  const soundtrackHint = document.getElementById('soundtrackHint');
+  const prefsKey = 'smk-audio-preferences';
+  const defaultPrefs = { volume: 0.5, muted: false, playIntent: false };
+
+  if (!audio) return;
+
+  let prefs = defaultPrefs;
+  try {
+    prefs = { ...defaultPrefs, ...(JSON.parse(localStorage.getItem(prefsKey) || '{}')) };
+  } catch (error) {
+    prefs = defaultPrefs;
+  }
+
+  audio.volume = Number.isFinite(prefs.volume) ? prefs.volume : defaultPrefs.volume;
+  audio.muted = Boolean(prefs.muted);
+  if (volumeControl) volumeControl.value = String(audio.volume);
+
+  const savePrefs = (nextPrefs = {}) => {
+    prefs = { ...prefs, ...nextPrefs };
+    localStorage.setItem(prefsKey, JSON.stringify(prefs));
+  };
+
+  const formatTime = (seconds) => {
+    if (!Number.isFinite(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const updatePlayingState = () => {
+    const isPlaying = !audio.paused;
+    musicToggle.textContent = isPlaying ? 'Pause' : 'Play';
+    musicPlayer?.classList.toggle('is-playing', isPlaying);
+    if (isPlaying) soundtrackHint?.classList.remove('is-visible');
+  };
+
+  const syncProgressUI = () => {
+    if (currentTime) currentTime.textContent = formatTime(audio.currentTime);
+    if (durationTime) durationTime.textContent = formatTime(audio.duration || 0);
+    if (audioProgress && Number.isFinite(audio.duration) && audio.duration > 0) {
+      audioProgress.value = String((audio.currentTime / audio.duration) * 100);
+    }
+  };
+
+  const fadeInAudio = async () => {
+    if (!audio.paused) return;
+    const targetVolume = audio.volume;
+    audio.volume = 0;
+    await audio.play();
+    const fadeDuration = 1800;
+    const startedAt = performance.now();
+
+    const animate = (timestamp) => {
+      const progress = Math.min(1, (timestamp - startedAt) / fadeDuration);
+      audio.volume = targetVolume * progress;
+      if (progress < 1 && !audio.paused) {
+        requestAnimationFrame(animate);
+        return;
+      }
+      if (!audio.paused) audio.volume = targetVolume;
+    };
+
+    requestAnimationFrame(animate);
+  };
 
   musicToggle?.addEventListener('click', async () => {
     if (audio.paused) {
-      try { await audio.play(); musicToggle.textContent = 'Pause'; } catch (error) { musicToggle.textContent = 'Blocked'; }
+      try {
+        await fadeInAudio();
+        savePrefs({ playIntent: true });
+      } catch (error) {
+        musicToggle.textContent = 'Blocked';
+        return;
+      }
     } else {
       audio.pause();
-      musicToggle.textContent = 'Play';
+      savePrefs({ playIntent: false });
     }
+    updatePlayingState();
   });
 
   volumeControl?.addEventListener('input', (e) => {
     audio.volume = Number(e.target.value);
+    if (audio.muted && audio.volume > 0) {
+      audio.muted = false;
+      savePrefs({ muted: false });
+    }
+    savePrefs({ volume: audio.volume });
   });
+
+  audioProgress?.addEventListener('input', (e) => {
+    if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+    audio.currentTime = (Number(e.target.value) / 100) * audio.duration;
+    syncProgressUI();
+  });
+
+  audio.addEventListener('loadedmetadata', syncProgressUI);
+  audio.addEventListener('timeupdate', syncProgressUI);
+  audio.addEventListener('play', updatePlayingState);
+  audio.addEventListener('pause', updatePlayingState);
+  audio.addEventListener('volumechange', () => {
+    savePrefs({ volume: audio.volume, muted: audio.muted });
+  });
+
+  updatePlayingState();
+  syncProgressUI();
 }
 
 function setupTilt() {
