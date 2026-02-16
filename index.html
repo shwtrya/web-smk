@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Forever SMKN 1 Cileungsi</title>
+    <meta
+      name="description"
+      content="Website kenang-kenangan SMKN 1 Cileungsi bergaya film perpisahan premium."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              midnight: '#0b1220',
+              charcoal: '#141821',
+              gold: '#d4af37',
+              glow: '#f8f3de'
+            },
+            fontFamily: {
+              serif: ['Cormorant Garamond', 'serif'],
+              sans: ['Inter', 'sans-serif']
+            }
+          }
+        }
+      };
+    </script>
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body class="bg-midnight text-slate-100 font-sans overflow-x-hidden">
+    <div id="intro" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#05070d]">
+      <div class="film-grain"></div>
+      <div class="text-center px-6 relative z-10">
+        <p class="text-gold uppercase tracking-[0.4em] text-xs mb-5 intro-line">SMKN 1 Cileungsi</p>
+        <h1 class="font-serif text-4xl md:text-6xl mb-8 intro-line">A Story We'll Never Forget</h1>
+        <div class="w-56 md:w-80 mx-auto h-[2px] bg-white/10 rounded-full overflow-hidden">
+          <div id="intro-progress" class="h-full bg-gradient-to-r from-gold/80 to-glow w-0"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="scrollProgress" class="fixed top-0 left-0 z-[90] h-[2px] bg-gold/80 w-0"></div>
+
+    <div class="letterbox letterbox-top"></div>
+    <div class="letterbox letterbox-bottom"></div>
+
+    <button id="settingsToggle" class="fixed right-5 bottom-24 z-50 pill-btn">⚙️</button>
+    <div id="settingsPanel" class="fixed right-5 bottom-36 z-50 glass-panel p-4 hidden w-64 space-y-3">
+      <label class="toggle-row"><span>Dark Mode</span><input type="checkbox" id="themeToggle" checked /></label>
+      <label class="toggle-row"><span>Film Grain</span><input type="checkbox" id="grainToggle" checked /></label>
+      <label class="toggle-row"><span>Light Leak</span><input type="checkbox" id="leakToggle" checked /></label>
+    </div>
+
+    <div class="film-grain app-grain"></div>
+    <div class="light-leak app-leak"></div>
+    <div id="pointerGlow"></div>
+
+    <header class="min-h-screen relative flex items-center justify-center overflow-hidden" id="hero">
+      <div class="hero-bg parallax-layer"></div>
+      <div class="hero-overlay"></div>
+      <canvas id="dustCanvas" class="absolute inset-0 w-full h-full"></canvas>
+
+      <div class="relative z-10 text-center px-6 max-w-4xl">
+        <p class="uppercase tracking-[0.45em] text-[10px] md:text-xs text-gold/90 mb-6">Farewell Edition 2026</p>
+        <h1 class="font-serif text-5xl md:text-8xl leading-tight mb-4">Kenangan Tak Pernah Usang</h1>
+        <p class="text-lg md:text-2xl text-slate-200/90 mb-6">SMKN 1 Cileungsi — Tempat Kita Bertumbuh & Bermimpi</p>
+        <p class="typing-line text-gold text-base md:text-xl mb-10" data-text="Satu Angkatan. Sejuta Cerita."></p>
+        <div class="flex flex-wrap gap-4 justify-center">
+          <a href="#story" class="cta-btn">Enter the Memories</a>
+          <a href="#gallery" class="cta-btn cta-btn-secondary">Open Gallery</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="story" class="section-wrap">
+        <div class="section-heading">
+          <p class="text-gold uppercase tracking-[0.4em] text-xs">Visual Story</p>
+          <h2 class="font-serif text-4xl md:text-6xl">Scene Perjalanan Kita</h2>
+        </div>
+        <div class="space-y-10">
+          <article class="scene-card reveal">
+            <div>
+              <p class="scene-tag">Hari Pertama</p>
+              <h3 class="scene-title">Degup Pertama di Lorong Sekolah</h3>
+              <p class="scene-copy">Langkah kecil dengan seragam baru, saling menatap malu, lalu pelan-pelan menjadi rumah untuk bertumbuh.</p>
+            </div>
+            <img src="assets/images/scene-1.svg" loading="lazy" alt="Hari pertama sekolah" />
+          </article>
+          <article class="scene-card reveal">
+            <div>
+              <p class="scene-tag">Kebersamaan</p>
+              <h3 class="scene-title">Tawa yang Menyelamatkan Hari</h3>
+              <p class="scene-copy">Di kantin, di kelas, di bawah langit sore—kita belajar bahwa teman adalah kekuatan paling hangat.</p>
+            </div>
+            <img src="assets/images/scene-2.svg" loading="lazy" alt="Kebersamaan siswa" />
+          </article>
+          <article class="scene-card reveal">
+            <div>
+              <p class="scene-tag">Praktikum & Lelah yang Seru</p>
+              <h3 class="scene-title">Tangan Kotor, Mimpi Makin Jelas</h3>
+              <p class="scene-copy">Lelah yang tulus melatih disiplin, sabar, dan keberanian untuk mencoba lagi saat gagal.</p>
+            </div>
+            <img src="assets/images/scene-3.svg" loading="lazy" alt="Praktikum" />
+          </article>
+          <article class="scene-card reveal">
+            <div>
+              <p class="scene-tag">PKL</p>
+              <h3 class="scene-title">Belajar Dunia yang Sesungguhnya</h3>
+              <p class="scene-copy">Bertemu tantangan nyata, mengubah rasa takut menjadi percaya diri dan profesionalitas.</p>
+            </div>
+            <img src="assets/images/scene-4.svg" loading="lazy" alt="PKL" />
+          </article>
+          <article class="scene-card reveal">
+            <div>
+              <p class="scene-tag">Ujian</p>
+              <h3 class="scene-title">Malam Panjang, Hati yang Tegar</h3>
+              <p class="scene-copy">Kita menaklukkan ragu satu halaman demi satu halaman, ditemani doa dan harapan keluarga.</p>
+            </div>
+            <img src="assets/images/scene-5.svg" loading="lazy" alt="Ujian" />
+          </article>
+          <article class="scene-card reveal">
+            <div>
+              <p class="scene-tag">Perpisahan</p>
+              <h3 class="scene-title">Bukan Akhir, Hanya Jeda</h3>
+              <p class="scene-copy">Pelukan terakhir di gerbang sekolah, lalu jalan baru dimulai dengan kenangan yang tak pernah padam.</p>
+            </div>
+            <img src="assets/images/scene-6.svg" loading="lazy" alt="Perpisahan" />
+          </article>
+        </div>
+      </section>
+
+      <section class="section-wrap">
+        <div class="section-heading">
+          <p class="text-gold uppercase tracking-[0.4em] text-xs">Highlight</p>
+          <h2 class="font-serif text-4xl md:text-6xl">Momen yang Menempel Selamanya</h2>
+        </div>
+        <div class="memory-grid">
+          <article class="memory-card tilt-card">
+            <h3>MPLS & Adaptasi</h3>
+            <p>Dari asing menjadi saling mengenal.</p>
+            <span>Juli 2023</span>
+          </article>
+          <article class="memory-card tilt-card">
+            <h3>Lomba Antar Kelas</h3>
+            <p>Kompetisi seru yang bikin kompak.</p>
+            <span>November 2023</span>
+          </article>
+          <article class="memory-card tilt-card">
+            <h3>Project Praktikum</h3>
+            <p>Satu tugas, seribu revisi, hasil memuaskan.</p>
+            <span>2024</span>
+          </article>
+          <article class="memory-card tilt-card">
+            <h3>PKL Journey</h3>
+            <p>Langkah pertama menuju dunia kerja profesional.</p>
+            <span>2025</span>
+          </article>
+        </div>
+      </section>
+
+      <section id="gallery" class="section-wrap">
+        <div class="section-heading">
+          <p class="text-gold uppercase tracking-[0.4em] text-xs">Gallery</p>
+          <h2 class="font-serif text-4xl md:text-6xl">Cinematic Album</h2>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-8" id="filters">
+          <button class="filter-btn active" data-filter="all">Semua</button>
+          <button class="filter-btn" data-filter="kegiatan">Kegiatan</button>
+          <button class="filter-btn" data-filter="praktikum">Praktikum</button>
+          <button class="filter-btn" data-filter="pkl">PKL</button>
+          <button class="filter-btn" data-filter="kelas">Kelas</button>
+          <button class="filter-btn" data-filter="perpisahan">Perpisahan</button>
+          <button class="filter-btn" data-filter="random">Random Moments</button>
+        </div>
+        <div class="masonry" id="galleryGrid"></div>
+        <div class="mt-8">
+          <button id="slideshowBtn" class="cta-btn">Start Slideshow</button>
+        </div>
+      </section>
+
+      <section class="section-wrap">
+        <div class="tribute glass-panel reveal">
+          <p class="text-gold uppercase tracking-[0.35em] text-xs mb-3">Tribute Film</p>
+          <h2 class="font-serif text-4xl md:text-5xl mb-4">Untuk semua tawa, lelah, dan mimpi yang pernah kita bagi.</h2>
+          <div class="video-frame">
+            <img src="assets/images/tribute-cover.svg" alt="Tribute cover" loading="lazy" />
+            <button class="play-btn" aria-label="Play tribute video">▶</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="message-wall" class="section-wrap message-section">
+        <div class="section-heading">
+          <p class="text-gold uppercase tracking-[0.4em] text-xs">Pesan & Kesan</p>
+          <h2 class="font-serif text-4xl md:text-6xl">Message Wall Angkatan</h2>
+        </div>
+        <div class="grid lg:grid-cols-2 gap-8">
+          <form id="messageForm" class="glass-panel p-6 space-y-4">
+            <input required name="nama" placeholder="Nama" class="input-field" />
+            <input required name="jurusan" placeholder="Jurusan" class="input-field" />
+            <input required name="angkatan" placeholder="Angkatan" class="input-field" />
+            <textarea required name="pesan" placeholder="Tulis pesanmu..." rows="4" class="input-field"></textarea>
+            <button class="cta-btn w-full" type="submit">Kirim Pesan</button>
+          </form>
+          <div>
+            <h3 class="font-serif text-2xl mb-4">Most Liked Message ⭐</h3>
+            <article class="memory-card mb-6">
+              <p>"Kita mungkin berpisah ruang, tapi tidak pernah berpisah kenangan."</p>
+              <span>— Nabila, TKJ, 2026</span>
+            </article>
+            <div id="messages" class="space-y-4"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-wrap text-center">
+        <a href="angkatan.html" class="cta-btn">Buka Halaman Angkatan</a>
+      </section>
+    </main>
+
+    <footer class="py-16 px-6 border-t border-white/10 text-center">
+      <div class="credits-marquee mb-6"><span>Cast • Crew • Teachers • Memories • Cast • Crew • Teachers • Memories</span></div>
+      <h3 class="font-serif text-3xl md:text-5xl mb-2">Forever SMKN 1 Cileungsi</h3>
+      <p class="text-slate-300">Made with ❤️ by Alumni</p>
+      <div class="mt-5 flex justify-center gap-4 text-xl">
+        <a href="#" aria-label="Instagram">◉</a>
+        <a href="#" aria-label="YouTube">◍</a>
+        <a href="#" aria-label="TikTok">◎</a>
+      </div>
+    </footer>
+
+    <div class="music-player glass-panel">
+      <p class="text-xs uppercase tracking-[0.2em] text-gold">Nostalgia Player</p>
+      <div class="flex items-center gap-3 mt-2">
+        <button id="musicToggle" class="pill-btn">Play</button>
+        <input id="volumeControl" type="range" min="0" max="1" step="0.05" value="0.5" />
+      </div>
+      <audio id="bgMusic" loop preload="none" src="assets/media/nostalgia.mp3"></audio>
+    </div>
+
+    <div id="lightbox" class="lightbox hidden">
+      <button id="closeLightbox" class="lightbox-close">✕</button>
+      <button id="prevPhoto" class="lightbox-nav">‹</button>
+      <figure>
+        <img id="lightboxImage" alt="Gallery image" />
+        <figcaption id="lightboxCaption"></figcaption>
+      </figure>
+      <button id="nextPhoto" class="lightbox-nav">›</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.39/bundled/lenis.min.js"></script>
+    <script src="assets/js/main.js"></script>
+  </body>
+</html>
